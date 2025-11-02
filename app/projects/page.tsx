@@ -364,7 +364,7 @@ export default function Projects() {
           <div className="container">
             <h2>Have a Project in Mind?</h2>
             <p className={styles.ctaText}>
-              Let's discuss how we can bring your vision to life with our expertise and commitment to excellence.
+              Let&apos;s discuss how we can bring your vision to life with our expertise and commitment to excellence.
             </p>
             <Link href="/contact" className="btn">Start Your Project</Link>
           </div>

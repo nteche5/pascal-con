@@ -12,7 +12,7 @@ export default function About() {
           <div className="container">
             <h1>About Us</h1>
             <p className={styles.pageSubtitle}>
-              Building Africa's Future Through Excellence and Innovation
+              Building Africa&apos;s Future Through Excellence and Innovation
             </p>
           </div>
         </section>

@@ -82,7 +82,7 @@ export default function Contact() {
               <div className={styles.contactInfo}>
                 <h2>Get in Touch</h2>
                 <p className={styles.contactIntro}>
-                  We're here to help you bring your construction and engineering projects to life. 
+                  We&apos;re here to help you bring your construction and engineering projects to life. 
                   Reach out to us through any of the following channels.
                 </p>
 
@@ -218,7 +218,7 @@ export default function Contact() {
 
                   {submitStatus === 'success' && (
                     <div className={styles.successMessage} role="alert">
-                      Thank you! Your message has been sent successfully. We'll get back to you soon.
+                      Thank you! Your message has been sent successfully. We&apos;ll get back to you soon.
                     </div>
                   )}
 

@@ -34,7 +34,7 @@ export default function ProjectDetail() {
           <section style={{ padding: '4rem 0', textAlign: 'center' }}>
             <div className="container">
               <h1>Project Not Found</h1>
-              <p>The project you're looking for doesn't exist.</p>
+              <p>The project you&apos;re looking for doesn&apos;t exist.</p>
               <Link href="/projects" className="btn">
                 View All Projects
               </Link>
