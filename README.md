@@ -96,8 +96,9 @@ Add the following variables in the Vercel dashboard under **Project Settings →
 | `GMAIL_APP_PASSWORD` | Gmail App Password (16 characters) |
 | `SUPABASE_URL` | Supabase project URL (found in Project Settings → API) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (Server-side only!) |
+| `SUPABASE_PROJECTS_BUCKET` | Supabase Storage bucket for project uploads (defaults to `project-files` if unset) |
 
-👉 **Important:** The contact message storage in `lib/contact-messages.ts` uses the local filesystem (`data/contact-messages.json`). Vercel’s serverless functions have ephemeral storage, so messages won’t persist between deployments or instances. For production, replace this with a persistent store (e.g., Supabase, PlanetScale, MongoDB, etc.).
+👉 **Important:** The contact form and admin project upload now depend on Supabase. Ensure the tables and storage bucket described below exist, and double-check that the service-role key is only used on the server side (Vercel environment variables).
 
 ### 4. Trigger the first deployment
 
@@ -118,7 +119,7 @@ This mimics Vercel’s production environment on your machine.
 
 ## ☁️ Supabase Setup
 
-The contact form and the admin dashboard now use Supabase for persistent message storage. Follow these steps to configure it:
+The contact form and the admin dashboard now use Supabase for persistent message storage **and** project uploads. Follow these steps to configure it:
 
 1. **Create a table** named `contact_messages` with the following columns:
 
@@ -136,7 +137,36 @@ The contact form and the admin dashboard now use Supabase for persistent message
 
    Enable Row Level Security (RLS) and *do not* add policies if you are using the service-role key exclusively from server-side code (as in this project).
 
-2. **Copy credentials** from **Supabase → Project Settings → API** and add them to your `.env.local` / Vercel environment:
+2. **Create a table** named `project_submissions` to store uploads:
+
+   ```sql
+   create table if not exists project_submissions (
+     id uuid primary key default gen_random_uuid(),
+     title text not null,
+     category text not null,
+     description text not null,
+     location text,
+     year text,
+     size text,
+     status text,
+     full_description text,
+     files jsonb not null default '[]'::jsonb,
+     created_at timestamp with time zone default timezone('utc', now())
+   );
+   ```
+
+   This table stores the metadata for each project form submission and references uploaded files via Supabase Storage URLs.
+
+3. **Provision a storage bucket** for project assets (default name `project-files`):
+
+   ```sql
+   -- in Supabase SQL editor
+   select storage.create_bucket('project-files', public := true);
+   ```
+
+   If you choose a different bucket name, set `SUPABASE_PROJECTS_BUCKET` accordingly. Make sure the bucket allows public reads if you want the project images available without signed URLs.
+
+4. **Copy credentials** from **Supabase → Project Settings → API** and add them to your `.env.local` / Vercel environment:
 
    ```env
    SUPABASE_URL=...
@@ -145,9 +175,9 @@ The contact form and the admin dashboard now use Supabase for persistent message
 
    > ⚠️ The service role key grants elevated privileges. Keep it in server-side environment variables only—never expose it to the browser.
 
-3. **Deploy** (or restart `npm run dev`) so the new environment variables are picked up.
+5. **Deploy** (or restart `npm run dev`) so the new environment variables are picked up.
 
-The helpers in `lib/supabase-admin.ts` create a singleton Supabase client. `lib/contact-messages.ts` now reads/writes/deletes rows in `contact_messages`, and all API routes rely on those helpers.
+The helpers in `lib/supabase-admin.ts` create a singleton Supabase client. `lib/contact-messages.ts` reads/writes/deletes rows in `contact_messages`, while `lib/project-submissions.ts` and `app/api/projects/upload/route.ts` handle Supabase Storage uploads and metadata stored in `project_submissions`.
 
 ## 📁 Project Structure
 

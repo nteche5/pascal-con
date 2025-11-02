@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile } from 'fs/promises'
-import { join } from 'path'
-import { existsSync, mkdirSync } from 'fs'
 import { verifyAdmin } from '@/lib/auth'
+import { getSupabaseAdminClient } from '@/lib/supabase-admin'
+import { ProjectSubmissionFile, saveProjectSubmission } from '@/lib/project-submissions'
+
+const DEFAULT_BUCKET = 'project-files'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData()
-    
+
     // Extract form fields
     const title = formData.get('title') as string
     const category = formData.get('category') as string
@@ -35,42 +36,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Handle file uploads
     const files = formData.getAll('files') as File[]
-    const uploadedFiles: string[] = []
 
-    if (files.length > 0) {
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = join(process.cwd(), 'public', 'uploads', 'projects')
-      if (!existsSync(uploadsDir)) {
-        mkdirSync(uploadsDir, { recursive: true })
+    const supabase = getSupabaseAdminClient()
+    const bucket = process.env.SUPABASE_PROJECTS_BUCKET || DEFAULT_BUCKET
+
+    const uploadedFiles: ProjectSubmissionFile[] = []
+
+    for (const [index, file] of files.entries()) {
+      if (!file || file.size === 0) {
+        continue
       }
 
-      // Process each file
-      for (const file of files) {
-        if (file.size > 0) {
-          const bytes = await file.arrayBuffer()
-          const buffer = Buffer.from(bytes)
-          
-          // Generate unique filename
-          const timestamp = Date.now()
-          const sanitizedTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-          const fileExtension = file.name.split('.').pop()
-          const filename = `${sanitizedTitle}_${timestamp}.${fileExtension}`
-          const filepath = join(uploadsDir, filename)
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      const extension = file.name.includes('.') ? `.${file.name.split('.').pop()!.toLowerCase()}` : ''
+      const baseName = file.name.replace(/\.[^/.]+$/, '')
+      const sanitizedBase = baseName.replace(/[^a-z0-9_-]/gi, '_').toLowerCase()
+      const timestamp = Date.now()
+      const uniquePath = `projects/${timestamp}-${index}-${sanitizedBase}${extension}`
 
-          // Write file to disk
-          await writeFile(filepath, buffer)
-          
-          // Store relative path for frontend access
-          uploadedFiles.push(`/uploads/projects/${filename}`)
-        }
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(uniquePath, buffer, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: false,
+        })
+
+      if (uploadError) {
+        console.error('Error uploading file to Supabase storage:', uploadError)
+        throw new Error('Failed to upload project file')
       }
+
+      const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(uniquePath)
+
+      uploadedFiles.push({
+        name: file.name,
+        path: uniquePath,
+        url: publicUrlData?.publicUrl ?? null,
+        type: file.type || null,
+        size: file.size,
+      })
     }
 
-    // Here you would typically save the project data to a database
-    // For now, we'll just return success with the uploaded file paths
-    const projectData = {
+    const projectRecord = await saveProjectSubmission({
       title,
       category,
       description,
@@ -80,19 +89,12 @@ export async function POST(request: NextRequest) {
       status: status || null,
       fullDescription: fullDescription || null,
       files: uploadedFiles,
-      submittedAt: new Date().toISOString()
-    }
-
-    // TODO: Save to database
-    console.log('Project submitted:', projectData)
+    })
 
     return NextResponse.json({
       success: true,
       message: 'Project uploaded successfully!',
-      data: {
-        project: projectData,
-        filesUploaded: uploadedFiles.length
-      }
+      data: projectRecord,
     })
   } catch (error) {
     console.error('Error uploading project:', error)
