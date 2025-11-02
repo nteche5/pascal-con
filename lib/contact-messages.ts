@@ -1,78 +1,88 @@
-import { writeFile, readFile, mkdir } from 'fs/promises'
-import { existsSync } from 'fs'
-import { join } from 'path'
+import { getSupabaseAdminClient } from './supabase-admin'
+
+const TABLE_NAME = 'contact_messages'
 
 export interface ContactMessage {
   id: string
   name: string
   email: string
-  phone?: string
+  phone?: string | null
   subject: string
   message: string
   submittedAt: string
 }
 
-const CONTACT_MESSAGES_FILE = join(process.cwd(), 'data', 'contact-messages.json')
+type InsertContactMessage = Omit<ContactMessage, 'id' | 'submittedAt'>
 
-async function ensureDataDirectory() {
-  const dataDir = join(process.cwd(), 'data')
-  if (!existsSync(dataDir)) {
-    await mkdir(dataDir, { recursive: true })
-  }
-}
+export async function saveContactMessage(payload: InsertContactMessage): Promise<ContactMessage> {
+  const supabase = getSupabaseAdminClient()
 
-async function readMessages(): Promise<ContactMessage[]> {
-  try {
-    await ensureDataDirectory()
-    if (!existsSync(CONTACT_MESSAGES_FILE)) {
-      return []
-    }
-    const content = await readFile(CONTACT_MESSAGES_FILE, 'utf-8')
-    return JSON.parse(content)
-  } catch (error) {
-    console.error('Error reading messages:', error)
-    return []
-  }
-}
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .insert({
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone ?? null,
+      subject: payload.subject,
+      message: payload.message,
+    })
+    .select()
+    .single()
 
-async function writeMessages(messages: ContactMessage[]): Promise<void> {
-  try {
-    await ensureDataDirectory()
-    await writeFile(CONTACT_MESSAGES_FILE, JSON.stringify(messages, null, 2), 'utf-8')
-  } catch (error) {
-    console.error('Error writing messages:', error)
-    throw error
+  if (error) {
+    console.error('Error saving contact message:', error)
+    throw new Error('Failed to store contact message')
   }
-}
 
-export async function saveContactMessage(message: Omit<ContactMessage, 'id' | 'submittedAt'>): Promise<ContactMessage> {
-  const messages = await readMessages()
-  const newMessage: ContactMessage = {
-    ...message,
-    id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    submittedAt: new Date().toISOString()
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    subject: data.subject,
+    message: data.message,
+    submittedAt: data.created_at ?? new Date().toISOString(),
   }
-  
-  messages.unshift(newMessage) // Add to beginning (newest first)
-  await writeMessages(messages)
-  
-  return newMessage
 }
 
 export async function getContactMessages(): Promise<ContactMessage[]> {
-  return await readMessages()
+  const supabase = getSupabaseAdminClient()
+
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select()
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching contact messages:', error)
+    throw new Error('Failed to fetch contact messages')
+  }
+
+  return (data ?? []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    email: item.email,
+    phone: item.phone,
+    subject: item.subject,
+    message: item.message,
+    submittedAt: item.created_at ?? new Date().toISOString(),
+  }))
 }
 
 export async function deleteContactMessage(id: string): Promise<boolean> {
-  const messages = await readMessages()
-  const filtered = messages.filter(msg => msg.id !== id)
-  
-  if (filtered.length === messages.length) {
-    return false // Message not found
+  const supabase = getSupabaseAdminClient()
+
+  const { error, count } = await supabase
+    .from(TABLE_NAME)
+    .delete({ count: 'exact' })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting contact message:', error)
+    throw new Error('Failed to delete contact message')
   }
-  
-  await writeMessages(filtered)
-  return true
+
+  return (count ?? 0) > 0
 }
 
 

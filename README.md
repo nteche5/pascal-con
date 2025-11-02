@@ -94,6 +94,8 @@ Add the following variables in the Vercel dashboard under **Project Settings →
 | `ADMIN_PASSWORD` | Admin login password |
 | `GMAIL_USER` | Gmail address used to send contact emails |
 | `GMAIL_APP_PASSWORD` | Gmail App Password (16 characters) |
+| `SUPABASE_URL` | Supabase project URL (found in Project Settings → API) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (Server-side only!) |
 
 👉 **Important:** The contact message storage in `lib/contact-messages.ts` uses the local filesystem (`data/contact-messages.json`). Vercel’s serverless functions have ephemeral storage, so messages won’t persist between deployments or instances. For production, replace this with a persistent store (e.g., Supabase, PlanetScale, MongoDB, etc.).
 
@@ -113,6 +115,39 @@ npm run start
 ```
 
 This mimics Vercel’s production environment on your machine.
+
+## ☁️ Supabase Setup
+
+The contact form and the admin dashboard now use Supabase for persistent message storage. Follow these steps to configure it:
+
+1. **Create a table** named `contact_messages` with the following columns:
+
+   ```sql
+   create table if not exists contact_messages (
+     id uuid primary key default gen_random_uuid(),
+     name text not null,
+     email text not null,
+     phone text,
+     subject text not null,
+     message text not null,
+     created_at timestamp with time zone default timezone('utc', now())
+   );
+   ```
+
+   Enable Row Level Security (RLS) and *do not* add policies if you are using the service-role key exclusively from server-side code (as in this project).
+
+2. **Copy credentials** from **Supabase → Project Settings → API** and add them to your `.env.local` / Vercel environment:
+
+   ```env
+   SUPABASE_URL=...
+   SUPABASE_SERVICE_ROLE_KEY=...
+   ```
+
+   > ⚠️ The service role key grants elevated privileges. Keep it in server-side environment variables only—never expose it to the browser.
+
+3. **Deploy** (or restart `npm run dev`) so the new environment variables are picked up.
+
+The helpers in `lib/supabase-admin.ts` create a singleton Supabase client. `lib/contact-messages.ts` now reads/writes/deletes rows in `contact_messages`, and all API routes rely on those helpers.
 
 ## 📁 Project Structure
 

@@ -24,19 +24,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save contact message to storage
-    try {
-      await saveContactMessage({
-        name,
-        email,
-        phone: phone || undefined,
-        subject,
-        message
-      })
-    } catch (saveError) {
-      console.error('Error saving contact message:', saveError)
-      // Continue even if save fails, still send email
-    }
+    const storedMessage = await saveContactMessage({
+      name,
+      email,
+      phone: phone || null,
+      subject,
+      message,
+    })
 
     // Create transporter using Gmail SMTP
     // Environment variables: GMAIL_USER and GMAIL_APP_PASSWORD
@@ -124,7 +118,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Your message has been sent successfully!'
+      message: 'Your message has been sent successfully!',
+      data: storedMessage,
     })
   } catch (error) {
     console.error('Error processing contact form:', error)
