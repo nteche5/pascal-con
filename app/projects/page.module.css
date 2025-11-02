@@ -32,10 +32,28 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.uploadHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
 .uploadFormContainer h2 {
   color: var(--color-primary);
   margin-bottom: var(--spacing-sm);
   font-size: 2rem;
+}
+
+.backToDashboard {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--color-secondary);
+  text-decoration: none;
+}
+
+.backToDashboard:hover {
+  text-decoration: underline;
 }
 
 .uploadDescription {

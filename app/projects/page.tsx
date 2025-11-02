@@ -134,7 +134,12 @@ export default function Projects() {
           <section className={styles.uploadSection} aria-label="Project upload form">
             <div className="container">
               <div className={styles.uploadFormContainer}>
-                <h2>Upload a New Project</h2>
+                <div className={styles.uploadHeader}>
+                  <h2>Upload a New Project</h2>
+                  <Link href="/admin/dashboard" className={styles.backToDashboard}>
+                    ← Back to Dashboard
+                  </Link>
+                </div>
                 <p className={styles.uploadDescription}>
                   Share your project details and images with us
                 </p>

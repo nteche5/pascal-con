@@ -204,8 +204,8 @@ export default function AdminDashboard() {
 
                 <div className={styles.dashboardCard}>
                   <h3>Settings</h3>
-                  <p>Configure admin settings</p>
-                  <p className={styles.comingSoon}>Coming Soon</p>
+                  <p>Configure company info and hero media</p>
+                  <a href="/admin/settings" className="btn">Open Settings</a>
                 </div>
               </div>
 
