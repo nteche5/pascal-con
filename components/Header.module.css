@@ -1,0 +1,228 @@
+.header {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  padding: var(--spacing-md) 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+/* Primary Logo - Desktop */
+.logoFull {
+  display: none;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #ffffff;
+  text-decoration: none;
+  transition: opacity var(--transition-base);
+}
+
+.logoFull:hover {
+  opacity: 0.9;
+  text-decoration: none;
+}
+
+.logoText {
+  font-family: var(--font-header);
+  font-weight: var(--weight-bold);
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+}
+
+.logoCompany {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Secondary Logo - Mobile */
+.logoMobile {
+  display: block;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.logoMobile .logoText {
+  font-family: var(--font-header);
+  font-weight: var(--weight-bold);
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+}
+
+/* Navigation */
+.nav {
+  position: relative;
+}
+
+.navList {
+  display: flex;
+  list-style: none;
+  gap: var(--spacing-lg);
+  margin: 0;
+  padding: 0;
+}
+
+.navList a {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  color: #ffffff;
+  text-decoration: none;
+  padding: var(--spacing-xs) 0;
+  position: relative;
+  transition: color var(--transition-base);
+}
+
+.navList a:hover,
+.navList a:focus {
+  color: var(--color-highlight);
+  text-decoration: none;
+}
+
+.navList a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--color-secondary);
+  transition: width var(--transition-base);
+}
+
+.navList a:hover::after,
+.navList a:focus::after {
+  width: 100%;
+}
+
+/* Menu Toggle Button - Mobile */
+.menuToggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1001;
+}
+
+.menuIcon {
+  width: 2rem;
+  height: 0.25rem;
+  background-color: #ffffff;
+  border-radius: 10px;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.menuIcon::before,
+.menuIcon::after {
+  content: '';
+  position: absolute;
+  width: 2rem;
+  height: 0.25rem;
+  background-color: #ffffff;
+  border-radius: 10px;
+  transition: all var(--transition-base);
+}
+
+.menuIcon::before {
+  transform: translateY(-0.5rem);
+}
+
+.menuIcon::after {
+  transform: translateY(0.5rem);
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .logoFull {
+    display: none;
+  }
+
+  .logoMobile {
+    display: block;
+  }
+
+  .menuToggle {
+    display: flex;
+  }
+
+  .navList {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    height: 100vh;
+    width: 80%;
+    max-width: 300px;
+    background-color: var(--color-primary);
+    flex-direction: column;
+    padding: var(--spacing-2xl) var(--spacing-lg);
+    gap: var(--spacing-lg);
+    transition: right var(--transition-base);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .navListOpen {
+    right: 0;
+  }
+
+  .navList a {
+    font-size: 1.125rem;
+    padding: var(--spacing-sm) 0;
+  }
+
+  .menuToggle[aria-expanded="true"] .menuIcon {
+    background-color: transparent;
+  }
+
+  .menuToggle[aria-expanded="true"] .menuIcon::before {
+    transform: rotate(45deg);
+  }
+
+  .menuToggle[aria-expanded="true"] .menuIcon::after {
+    transform: rotate(-45deg);
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .logoFull .logoCompany {
+    font-size: 0.65rem;
+  }
+}
+
+/* Desktop - Show full logo */
+@media (min-width: 769px) {
+  .logoFull {
+    display: flex;
+  }
+
+  .logoMobile {
+    display: none;
+  }
+}
+

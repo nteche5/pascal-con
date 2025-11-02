@@ -1,0 +1,140 @@
+.pageHeader {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1a1d2e 100%);
+  color: #ffffff;
+  padding: var(--spacing-3xl) 0;
+  text-align: center;
+}
+
+.pageHeader h1 {
+  color: #ffffff;
+  margin-bottom: var(--spacing-md);
+}
+
+.pageSubtitle {
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.serviceDetailSection,
+.serviceDetailSectionAlt {
+  padding: var(--spacing-3xl) 0;
+}
+
+.serviceDetailSection {
+  background-color: #ffffff;
+}
+
+.serviceDetailSectionAlt {
+  background-color: var(--color-highlight);
+}
+
+.serviceDetail {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.serviceIcon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--spacing-lg);
+  color: var(--color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.serviceDetail h2 {
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-primary);
+}
+
+.serviceDescription {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-xl);
+  opacity: 0.9;
+}
+
+.serviceList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  text-align: left;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.serviceList li {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--color-primary);
+  padding: var(--spacing-sm) 0;
+  padding-left: var(--spacing-lg);
+  position: relative;
+}
+
+.serviceList li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--color-secondary);
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.ctaSection {
+  background: linear-gradient(135deg, var(--color-secondary) 0%, #3a7a68 100%);
+  color: #ffffff;
+  padding: var(--spacing-3xl) 0;
+  text-align: center;
+}
+
+.ctaSection h2 {
+  color: #ffffff;
+  margin-bottom: var(--spacing-md);
+}
+
+.ctaText {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: var(--spacing-xl);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ctaSection .btn {
+  background-color: #ffffff;
+  color: var(--color-secondary);
+  border-color: #ffffff;
+}
+
+.ctaSection .btn:hover {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+}
+
+@media (max-width: 768px) {
+  .pageHeader {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  .serviceDetailSection,
+  .serviceDetailSectionAlt,
+  .ctaSection {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  .serviceList {
+    grid-template-columns: 1fr;
+  }
+}
+
