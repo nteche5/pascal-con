@@ -24,28 +24,57 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const storedMessage = await saveContactMessage({
-      name,
-      email,
-      phone: phone || null,
-      subject,
-      message,
+    // Try to save message to Supabase, but don't fail if it errors
+    let storedMessage = null
+    try {
+      storedMessage = await saveContactMessage({
+        name,
+        email,
+        phone: phone || null,
+        subject,
+        message,
+      })
+    } catch (dbError) {
+      console.error('Error saving to database (continuing anyway):', dbError)
+      // Continue with email sending even if database save fails
+    }
+
+    // Validate Gmail credentials
+    const gmailUser = process.env.GMAIL_USER || 'pascalproperties4@gmail.com'
+    const gmailPassword = process.env.GMAIL_APP_PASSWORD
+
+    console.log('Email configuration check:', {
+      gmailUser,
+      hasPassword: !!gmailPassword,
+      passwordLength: gmailPassword?.length || 0,
+      timestamp: new Date().toISOString()
     })
 
+    if (!gmailPassword) {
+      console.error('GMAIL_APP_PASSWORD is not set in environment variables')
+      // Still try to save to database even if email fails
+      return NextResponse.json({
+        success: storedMessage ? true : false,
+        message: storedMessage 
+          ? 'Your message has been received, but email notification failed. Please check environment variables.'
+          : 'Failed to send message. Gmail credentials are not configured.',
+        data: storedMessage,
+      }, { status: storedMessage ? 200 : 500 })
+    }
+
     // Create transporter using Gmail SMTP
-    // Environment variables: GMAIL_USER and GMAIL_APP_PASSWORD
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.GMAIL_USER || 'pascalconstructionlmt@gmail.com',
-        pass: process.env.GMAIL_APP_PASSWORD || '', // Use app password from screenshot
+        user: gmailUser,
+        pass: gmailPassword,
       },
     })
 
     // Email content
     const mailOptions = {
-      from: process.env.GMAIL_USER || 'pascalconstructionlmt@gmail.com',
-      to: 'pascalconstructionlmt@gmail.com',
+      from: gmailUser,
+      to: 'pascalproperties4@gmail.com',
       replyTo: email,
       subject: `Contact Form: ${subject}`,
       html: `
@@ -109,22 +138,65 @@ export async function POST(request: NextRequest) {
     }
 
     // Send email
+    let emailSent = false
+    let emailError = null
+    console.log('Attempting to send email...', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      timestamp: new Date().toISOString()
+    })
+    
     try {
-      await transporter.sendMail(mailOptions)
-    } catch (emailError) {
-      console.error('Error sending email:', emailError)
+      const emailResult = await transporter.sendMail(mailOptions)
+      emailSent = true
+      console.log('✅ Email sent successfully!', {
+        messageId: emailResult.messageId,
+        accepted: emailResult.accepted,
+        rejected: emailResult.rejected,
+        response: emailResult.response
+      })
+    } catch (err) {
+      emailError = err
+      console.error('❌ ERROR sending email:', {
+        error: err instanceof Error ? err.message : String(err),
+        errorName: err instanceof Error ? err.name : 'Unknown',
+        code: (err as any)?.code,
+        response: (err as any)?.response,
+        responseCode: (err as any)?.responseCode,
+        command: (err as any)?.command,
+        stack: err instanceof Error ? err.stack : undefined
+      })
       // Still return success if message was saved
     }
 
+    // Return response based on whether email was sent
+    const message = emailSent 
+      ? 'Your message has been sent successfully!'
+      : storedMessage 
+        ? 'Your message has been received and saved. However, email notification failed. Please contact us directly.'
+        : 'Failed to send message. Please try again later.'
+    
     return NextResponse.json({
-      success: true,
-      message: 'Your message has been sent successfully!',
+      success: storedMessage ? true : false,
+      message,
+      emailSent,
       data: storedMessage,
+      ...(process.env.NODE_ENV === 'development' && emailError ? { 
+        debug: { 
+          emailError: emailError instanceof Error ? emailError.message : String(emailError) 
+        } 
+      } : {})
     })
   } catch (error) {
     console.error('Error processing contact form:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { success: false, message: 'Failed to send message. Please try again later.' },
+      { 
+        success: false, 
+        message: 'Failed to send message. Please try again later.',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }
