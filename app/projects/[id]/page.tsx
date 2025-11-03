@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 
 export default function ProjectDetail() {
   const params = useParams()
-  const [project, setProject] = useState<ReturnType<typeof getProjectById>>(null)
+  const [project, setProject] = useState<ReturnType<typeof getProjectById> | null>(null)
   
   useEffect(() => {
     if (params?.id) {
