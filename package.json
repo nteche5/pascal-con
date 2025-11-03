@@ -1,7 +1,6 @@
 {
   "name": "pksa-construction-website",
-  "version": "1.0.0",
-  "description": "PKSA Construction & Engineering Consultancy Ltd - Official Website",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,32 +9,41 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
-    "build:type-check": "npm run build && npm run type-check",
-    "dev:type-check": "concurrently \"npm run dev\" \"npm run type-check:watch\"",
     "lint:fix": "next lint --fix",
     "preview": "next start",
-    "vercel-build": "npm run build:type-check"
+    "vercel-build": "npm run build && npm run type-check"
   },
   "engines": {
     "node": ">=20 <21",
     "npm": ">=10"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.78.0",
+    "@googlemaps/js-api-loader": "^1.16.10",
+    "@supabase/supabase-js": "^2.58.0",
     "@types/nodemailer": "^7.0.3",
-    "next": "^14.2.33",
+    "autoprefixer": "^10.0.1",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "dotenv": "^17.2.3",
+    "framer-motion": "^10.16.5",
+    "lucide-react": "^0.294.0",
+    "next": "^15.0.0",
     "nodemailer": "^7.0.10",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "openai": "^6.1.0",
+    "postcss": "^8",
+    "react": "^18",
+    "react-dom": "^18",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@next/swc-wasm-nodejs": "^14.2.33",
-    "@types/node": "^20.10.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "eslint": "^8.54.0",
-    "eslint-config-next": "^14.2.33",
-    "typescript": "^5.3.0",
-    "concurrently": "^8.2.0"
+    "@types/google.maps": "^3.55.8",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "^15.0.0"
   }
 }
