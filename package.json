@@ -4,10 +4,21 @@
   "description": "PKSA Construction & Engineering Consultancy Ltd - Official Website",
   "private": true,
   "scripts": {
-    "dev": "NEXT_DISABLE_SWC_NATIVE=1 node --max-old-space-size=4096 node_modules/next/dist/bin/next dev -H 0.0.0.0 -p 3000",
-    "build": "NEXT_DISABLE_SWC_NATIVE=1 node --max-old-space-size=4096 node_modules/next/dist/bin/next build",
-    "start": "next start -H 0.0.0.0 -p 3000",
-    "lint": "next lint"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "build:type-check": "npm run build && npm run type-check",
+    "dev:type-check": "concurrently \"npm run dev\" \"npm run type-check:watch\"",
+    "lint:fix": "next lint --fix",
+    "preview": "next start",
+    "vercel-build": "npm run build:type-check"
+  },
+  "engines": {
+    "node": ">=20 <21",
+    "npm": ">=10"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.78.0",
@@ -24,6 +35,7 @@
     "@types/react-dom": "^18.2.0",
     "eslint": "^8.54.0",
     "eslint-config-next": "^14.2.33",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "concurrently": "^8.2.0"
   }
 }
