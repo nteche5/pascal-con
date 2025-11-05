@@ -15,7 +15,7 @@ export default function Home() {
           subtitle="PKSA is your trusted partner for innovative construction and engineering solutions across Africa — combining precision, strength, and reliability to deliver projects that exceed expectations."
           primaryCta={{ href: '/projects', label: 'View Our Projects' }}
           secondaryCta={{ href: '/contact', label: 'Get in Touch' }}
-          backgroundVideoSrc="/videos/f3.mp4"
+          backgroundVideoSrc="/videos/hero-background.mp4"
         />
 
         <StatsStrip
