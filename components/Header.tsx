@@ -66,6 +66,9 @@ export default function Header({ variant = 'default' }: HeaderProps) {
               <li>
                 <Link href="/contact" onClick={closeMenu}>Contact</Link>
               </li>
+              <li>
+                <Link href="/admin/login" onClick={closeMenu}>Admin</Link>
+              </li>
             </ul>
           </nav>
         </div>

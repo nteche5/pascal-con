@@ -16,6 +16,20 @@ interface ContactMessage {
   submittedAt: string
 }
 
+interface Project {
+  id: string
+  title: string
+  category: string
+  description: string
+  location?: string
+  year?: string
+  size?: string
+  status?: string
+  image?: string
+  files?: Array<{ url?: string; name?: string }>
+  submittedAt: string
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -23,6 +37,23 @@ export default function AdminDashboard() {
   const [messages, setMessages] = useState<ContactMessage[]>([])
   const [isLoadingMessages, setIsLoadingMessages] = useState(true)
   const [showMessages, setShowMessages] = useState(false)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true)
+  const [showProjects, setShowProjects] = useState(false)
+  const [showUploadForm, setShowUploadForm] = useState(false)
+  const [formData, setFormData] = useState({
+    title: '',
+    category: '',
+    description: '',
+    location: '',
+    year: '',
+    size: '',
+    status: '',
+    fullDescription: ''
+  })
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
   useEffect(() => {
     // Check authentication status
@@ -51,11 +82,23 @@ export default function AdminDashboard() {
   }, [router])
 
   useEffect(() => {
-    // Fetch contact messages when authenticated
+    // Fetch contact messages and projects when authenticated
     if (isAuthenticated) {
       fetchMessages()
+      fetchProjects()
     }
   }, [isAuthenticated])
+
+  useEffect(() => {
+    // Check if upload query parameter is present
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const upload = params.get('upload')
+      if (upload === 'true') {
+        setShowUploadForm(true)
+      }
+    }
+  }, [])
 
   const fetchMessages = async () => {
     try {
@@ -72,6 +115,25 @@ export default function AdminDashboard() {
       console.error('Error fetching messages:', error)
     } finally {
       setIsLoadingMessages(false)
+    }
+  }
+
+  const fetchProjects = async () => {
+    try {
+      setIsLoadingProjects(true)
+      const response = await fetch('/api/projects', {
+        credentials: 'include',
+        cache: 'no-store'
+      })
+      const data = await response.json()
+      
+      if (data.success && data.projects) {
+        setProjects(data.projects || [])
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+    } finally {
+      setIsLoadingProjects(false)
     }
   }
 
@@ -102,6 +164,34 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleDeleteProject = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setProjects(projects.filter(project => project.id !== id))
+        alert('Project deleted successfully')
+      } else {
+        alert(data.message || 'Failed to delete project')
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      alert('Failed to delete project')
+    }
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
@@ -111,6 +201,84 @@ export default function AdminDashboard() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const handleUploadChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  const handleUploadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFiles(Array.from(e.target.files))
+    }
+  }
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitStatus('idle')
+
+    try {
+      const formDataToSend = new FormData()
+      
+      // Append form fields
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value) {
+          formDataToSend.append(key, value)
+        }
+      })
+
+      // Append files
+      selectedFiles.forEach((file) => {
+        formDataToSend.append('files', file)
+      })
+
+      const response = await fetch('/api/projects/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formDataToSend,
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSubmitStatus('success')
+        setFormData({
+          title: '',
+          category: '',
+          description: '',
+          location: '',
+          year: '',
+          size: '',
+          status: '',
+          fullDescription: ''
+        })
+        setSelectedFiles([])
+        // Reset file input
+        const fileInput = document.getElementById('projectFiles') as HTMLInputElement
+        if (fileInput) {
+          fileInput.value = ''
+        }
+        // Refresh projects list
+        await fetchProjects()
+        // Hide form after success
+        setTimeout(() => {
+          setShowUploadForm(false)
+          setSubmitStatus('idle')
+          router.push('/admin/dashboard')
+        }, 2000)
+      } else {
+        setSubmitStatus('error')
+      }
+    } catch (error) {
+      console.error('Error submitting project:', error)
+      setSubmitStatus('error')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleLogout = async () => {
@@ -172,17 +340,36 @@ export default function AdminDashboard() {
               <div className={styles.dashboardGrid}>
                 <div className={styles.dashboardCard}>
                   <h3>Projects</h3>
-                  <p>Manage and upload new projects</p>
-                  <a href="/projects" className="btn">
-                    View Projects
-                  </a>
+                  <p>Manage and view uploaded projects</p>
+                  <button 
+                    onClick={() => {
+                      setShowProjects(!showProjects)
+                      if (!showProjects) {
+                        fetchProjects()
+                      }
+                    }}
+                    className="btn"
+                  >
+                    {showProjects ? 'Hide Projects' : `Manage Projects (${projects.length})`}
+                  </button>
                 </div>
 
                 <div className={styles.dashboardCard}>
                   <h3>Upload Project</h3>
                   <p>Add a new project to the portfolio</p>
-                  <a href="/projects" className="btn">
-                    Upload Project
+                  <button 
+                    onClick={() => setShowUploadForm(!showUploadForm)}
+                    className="btn"
+                  >
+                    {showUploadForm ? 'Cancel Upload' : 'Upload Project'}
+                  </button>
+                </div>
+
+                <div className={styles.dashboardCard}>
+                  <h3>View Projects</h3>
+                  <p>View projects on the public website</p>
+                  <a href="/projects" className="btn" target="_blank" rel="noopener noreferrer">
+                    View Projects
                   </a>
                 </div>
 
@@ -208,6 +395,251 @@ export default function AdminDashboard() {
                   <a href="/admin/settings" className="btn">Open Settings</a>
                 </div>
               </div>
+
+              {/* Upload Form Section */}
+              {showUploadForm && (
+                <div className={styles.messagesSection} style={{ marginTop: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2>Upload a New Project</h2>
+                    <button 
+                      onClick={() => setShowUploadForm(false)}
+                      className="btn"
+                      style={{ padding: '0.5rem 1rem' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <form onSubmit={handleUploadSubmit} style={{ maxWidth: '800px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label htmlFor="title" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                          Project Title <span style={{ color: 'red' }}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="title"
+                          name="title"
+                          value={formData.title}
+                          onChange={handleUploadChange}
+                          required
+                          style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="category" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                          Category <span style={{ color: 'red' }}>*</span>
+                        </label>
+                        <select
+                          id="category"
+                          name="category"
+                          value={formData.category}
+                          onChange={handleUploadChange}
+                          required
+                          style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                        >
+                          <option value="">Select category</option>
+                          <option value="Residential">Residential</option>
+                          <option value="Commercial">Commercial</option>
+                          <option value="Infrastructure">Infrastructure</option>
+                          <option value="Industrial">Industrial</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label htmlFor="location" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        value={formData.location}
+                        onChange={handleUploadChange}
+                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label htmlFor="year" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                          Year
+                        </label>
+                        <input
+                          type="text"
+                          id="year"
+                          name="year"
+                          value={formData.year}
+                          onChange={handleUploadChange}
+                          placeholder="e.g., 2024"
+                          style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="size" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                          Size
+                        </label>
+                        <input
+                          type="text"
+                          id="size"
+                          name="size"
+                          value={formData.size}
+                          onChange={handleUploadChange}
+                          placeholder="e.g., 5,000 sqm"
+                          style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="status" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                          Status
+                        </label>
+                        <select
+                          id="status"
+                          name="status"
+                          value={formData.status}
+                          onChange={handleUploadChange}
+                          style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                        >
+                          <option value="">Select status</option>
+                          <option value="Completed">Completed</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Planning">Planning</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label htmlFor="description" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Description <span style={{ color: 'red' }}>*</span>
+                      </label>
+                      <textarea
+                        id="description"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleUploadChange}
+                        rows={3}
+                        required
+                        placeholder="Brief description of the project"
+                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', fontFamily: 'inherit' }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label htmlFor="fullDescription" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Full Description
+                      </label>
+                      <textarea
+                        id="fullDescription"
+                        name="fullDescription"
+                        value={formData.fullDescription}
+                        onChange={handleUploadChange}
+                        rows={5}
+                        placeholder="Detailed description of the project"
+                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', fontFamily: 'inherit' }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label htmlFor="projectFiles" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Project Images/Files
+                      </label>
+                      <input
+                        type="file"
+                        id="projectFiles"
+                        name="projectFiles"
+                        onChange={handleUploadFileChange}
+                        multiple
+                        accept="image/*,.pdf,.doc,.docx"
+                        style={{ width: '100%', padding: '0.5rem' }}
+                      />
+                      {selectedFiles.length > 0 && (
+                        <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#f5f5f5', borderRadius: '4px' }}>
+                          <p style={{ marginBottom: '0.5rem', fontWeight: '500' }}>Selected files:</p>
+                          <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                            {selectedFiles.map((file, index) => (
+                              <li key={index}>{file.name}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {submitStatus === 'success' && (
+                      <div style={{ padding: '1rem', background: '#d4edda', color: '#155724', borderRadius: '4px', marginBottom: '1rem' }}>
+                        Project uploaded successfully! Redirecting...
+                      </div>
+                    )}
+
+                    {submitStatus === 'error' && (
+                      <div style={{ padding: '1rem', background: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '1rem' }}>
+                        Error uploading project. Please try again.
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      className="btn"
+                      disabled={isSubmitting}
+                      style={{ marginTop: '1rem' }}
+                    >
+                      {isSubmitting ? 'Uploading...' : 'Upload Project'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Projects Section */}
+              {showProjects && (
+                <div className={styles.messagesSection}>
+                  <h2>Projects</h2>
+                  {isLoadingProjects ? (
+                    <p>Loading projects...</p>
+                  ) : projects.length === 0 ? (
+                    <p className={styles.noMessages}>No projects yet. Upload your first project!</p>
+                  ) : (
+                    <div className={styles.messagesList}>
+                      {projects.map((project) => (
+                        <div key={project.id} className={styles.messageCard}>
+                          <div className={styles.messageHeader}>
+                            <div className={styles.messageInfo}>
+                              <h3>{project.title}</h3>
+                              <p className={styles.messageEmail}>
+                                <strong>Category:</strong> {project.category}
+                              </p>
+                              {project.location && (
+                                <p className={styles.messagePhone}>
+                                  <strong>Location:</strong> {project.location}
+                                </p>
+                              )}
+                              {project.status && (
+                                <p className={styles.messagePhone}>
+                                  <strong>Status:</strong> {project.status}
+                                </p>
+                              )}
+                            </div>
+                            <div className={styles.messageMeta}>
+                              <span className={styles.messageDate}>{formatDate(project.submittedAt)}</span>
+                              <button
+                                onClick={() => handleDeleteProject(project.id)}
+                                className={styles.deleteBtn}
+                                aria-label="Delete project"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                          <div className={styles.messageSubject}>
+                            <strong>Description:</strong>
+                          </div>
+                          <div className={styles.messageContent}>
+                            {project.description}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Contact Messages Section */}
               {showMessages && (

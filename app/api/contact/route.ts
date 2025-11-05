@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Return response based on whether email was sent
-    const message = emailSent 
+    const responseMessage = emailSent 
       ? 'Your message has been sent successfully!'
       : storedMessage 
         ? 'Your message has been received and saved. However, email notification failed. Please contact us directly.'
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: storedMessage ? true : false,
-      message,
+      message: responseMessage,
       emailSent,
       data: storedMessage,
       ...(process.env.NODE_ENV === 'development' && emailError ? { 
