@@ -47,7 +47,7 @@ export default function Footer() {
                 <strong>PKSA Construction & Engineering Consultancy Ltd</strong>
               </p>
               <p>
-                Email: <a href="mailto:pascalconstructionlmt@gmail.com">pascalconstructionlmt@gmail.com</a>
+                Email: <a href="mailto:pascalproperties4@gmail.com">pascalproperties4@gmail.com</a>
               </p>
               <p>
                 Phone: <a href="tel:+233555810550">+233 555 810 550</a>

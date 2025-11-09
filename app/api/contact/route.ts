@@ -8,12 +8,15 @@ export async function POST(request: NextRequest) {
     const { name, email, phone, subject, message } = body
 
     // Validate required fields
-    if (!name || !email || !subject || !message) {
+    if (!name || !email || !message) {
       return NextResponse.json(
         { success: false, message: 'Please fill in all required fields' },
         { status: 400 }
       )
     }
+
+    // Use default subject if not provided
+    const messageSubject = subject || 'General Inquiry'
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         phone: phone || null,
-        subject,
+        subject: messageSubject,
         message,
       })
     } catch (dbError) {
@@ -76,7 +79,7 @@ export async function POST(request: NextRequest) {
       from: gmailUser,
       to: 'pascalproperties4@gmail.com',
       replyTo: email,
-      subject: `Contact Form: ${subject}`,
+      subject: `Contact Form: ${messageSubject}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -113,7 +116,7 @@ export async function POST(request: NextRequest) {
                 ` : ''}
                 <div class="field">
                   <div class="label">Subject:</div>
-                  <div class="value">${subject}</div>
+                  <div class="value">${messageSubject}</div>
                 </div>
                 <div class="field">
                   <div class="label">Message:</div>
@@ -130,7 +133,7 @@ export async function POST(request: NextRequest) {
         Name: ${name}
         Email: ${email}
         ${phone ? `Phone: ${phone}` : ''}
-        Subject: ${subject}
+        Subject: ${messageSubject}
         
         Message:
         ${message}
