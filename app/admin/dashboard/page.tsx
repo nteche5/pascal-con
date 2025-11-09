@@ -52,8 +52,14 @@ export default function AdminDashboard() {
     fullDescription: ''
   })
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [filePreviews, setFilePreviews] = useState<Array<{ file: File; preview: string; id: string }>>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  
+  // Generate unique ID for each file
+  const getFileId = (file: File): string => {
+    return `${file.name}-${file.size}-${file.lastModified}`
+  }
 
   useEffect(() => {
     // Check authentication status
@@ -212,8 +218,55 @@ export default function AdminDashboard() {
 
   const handleUploadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setSelectedFiles(Array.from(e.target.files))
+      const newFiles = Array.from(e.target.files)
+      const existingIds = new Set(filePreviews.map(item => item.id))
+      const newPreviews: Array<{ file: File; preview: string; id: string }> = []
+      const filesToAdd: File[] = []
+      
+      newFiles.forEach((file) => {
+        const fileId = getFileId(file)
+        // Skip if file already exists
+        if (!existingIds.has(fileId)) {
+          if (file.type.startsWith('image/')) {
+            const preview = URL.createObjectURL(file)
+            newPreviews.push({ file, preview, id: fileId })
+          } else {
+            // For non-image files, use a placeholder
+            newPreviews.push({ file, preview: '', id: fileId })
+          }
+          filesToAdd.push(file)
+        }
+      })
+      
+      if (filesToAdd.length > 0) {
+        setSelectedFiles(prev => [...prev, ...filesToAdd])
+        setFilePreviews(prev => [...prev, ...newPreviews])
+      }
+      
+      // Clear the input to allow selecting the same files again if needed
+      e.target.value = ''
     }
+  }
+
+  const handleRemoveFile = (fileId: string) => {
+    const fileToRemove = filePreviews.find(item => item.id === fileId)
+    
+    if (!fileToRemove) return
+    
+    // Revoke the object URL to free memory
+    if (fileToRemove.preview) {
+      URL.revokeObjectURL(fileToRemove.preview)
+    }
+    
+    // Remove from both arrays using the file ID
+    setFilePreviews(prev => prev.filter(item => item.id !== fileId))
+    setSelectedFiles(prev => {
+      const index = prev.findIndex(file => getFileId(file) === fileId)
+      if (index !== -1) {
+        return prev.filter((_, i) => i !== index)
+      }
+      return prev
+    })
   }
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
@@ -256,7 +309,14 @@ export default function AdminDashboard() {
           status: '',
           fullDescription: ''
         })
+        // Clean up preview URLs
+        filePreviews.forEach(({ preview }) => {
+          if (preview) {
+            URL.revokeObjectURL(preview)
+          }
+        })
         setSelectedFiles([])
+        setFilePreviews([])
         // Reset file input
         const fileInput = document.getElementById('projectFiles') as HTMLInputElement
         if (fileInput) {
@@ -358,7 +418,23 @@ export default function AdminDashboard() {
                   <h3>Upload Project</h3>
                   <p>Add a new project to the portfolio</p>
                   <button 
-                    onClick={() => setShowUploadForm(!showUploadForm)}
+                    onClick={() => {
+                      if (showUploadForm) {
+                        // Clean up preview URLs when closing form
+                        filePreviews.forEach(({ preview }) => {
+                          if (preview) {
+                            URL.revokeObjectURL(preview)
+                          }
+                        })
+                        setSelectedFiles([])
+                        setFilePreviews([])
+                        const fileInput = document.getElementById('projectFiles') as HTMLInputElement
+                        if (fileInput) {
+                          fileInput.value = ''
+                        }
+                      }
+                      setShowUploadForm(!showUploadForm)
+                    }}
                     className="btn"
                   >
                     {showUploadForm ? 'Cancel Upload' : 'Upload Project'}
@@ -402,7 +478,22 @@ export default function AdminDashboard() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h2>Upload a New Project</h2>
                     <button 
-                      onClick={() => setShowUploadForm(false)}
+                      onClick={() => {
+                        // Clean up preview URLs when canceling
+                        filePreviews.forEach(({ preview }) => {
+                          if (preview) {
+                            URL.revokeObjectURL(preview)
+                          }
+                        })
+                        setSelectedFiles([])
+                        setFilePreviews([])
+                        setShowUploadForm(false)
+                        // Reset file input
+                        const fileInput = document.getElementById('projectFiles') as HTMLInputElement
+                        if (fileInput) {
+                          fileInput.value = ''
+                        }
+                      }}
                       className="btn"
                       style={{ padding: '0.5rem 1rem' }}
                     >
@@ -552,14 +643,118 @@ export default function AdminDashboard() {
                         accept="image/*,.pdf,.doc,.docx"
                         style={{ width: '100%', padding: '0.5rem' }}
                       />
-                      {selectedFiles.length > 0 && (
-                        <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#f5f5f5', borderRadius: '4px' }}>
-                          <p style={{ marginBottom: '0.5rem', fontWeight: '500' }}>Selected files:</p>
-                          <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                            {selectedFiles.map((file, index) => (
-                              <li key={index}>{file.name}</li>
+                      {filePreviews.length > 0 && (
+                        <div style={{ marginTop: '1rem' }}>
+                          <p style={{ marginBottom: '0.75rem', fontWeight: '500', color: 'var(--color-primary)' }}>
+                            Selected files ({filePreviews.length}):
+                          </p>
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
+                            gap: '1rem' 
+                          }}>
+                            {filePreviews.map((item) => (
+                              <div 
+                                key={item.id} 
+                                style={{ 
+                                  position: 'relative',
+                                  border: '1px solid #ddd',
+                                  borderRadius: '8px',
+                                  overflow: 'hidden',
+                                  background: '#f9f9f9'
+                                }}
+                              >
+                                {item.preview ? (
+                                  <>
+                                    <img
+                                      src={item.preview}
+                                      alt={item.file.name}
+                                      style={{
+                                        width: '100%',
+                                        height: '150px',
+                                        objectFit: 'cover',
+                                        display: 'block'
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFile(item.id)}
+                                      style={{
+                                        position: 'absolute',
+                                        top: '0.5rem',
+                                        right: '0.5rem',
+                                        background: 'rgba(220, 53, 69, 0.9)',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '28px',
+                                        height: '28px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '18px',
+                                        fontWeight: 'bold',
+                                        transition: 'background 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                      }}
+                                      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(200, 35, 51, 1)'}
+                                      onMouseOut={(e) => e.currentTarget.style.background = 'rgba(220, 53, 69, 0.9)'}
+                                      aria-label={`Remove ${item.file.name}`}
+                                    >
+                                      ×
+                                    </button>
+                                    <div style={{ 
+                                      padding: '0.5rem', 
+                                      fontSize: '0.75rem', 
+                                      color: '#666',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {item.file.name}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div style={{ padding: '1rem', textAlign: 'center' }}>
+                                    <div style={{ 
+                                      fontSize: '2rem', 
+                                      marginBottom: '0.5rem',
+                                      color: '#999'
+                                    }}>📄</div>
+                                    <div style={{ 
+                                      fontSize: '0.75rem', 
+                                      color: '#666',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {item.file.name}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFile(item.id)}
+                                      style={{
+                                        marginTop: '0.5rem',
+                                        padding: '0.25rem 0.5rem',
+                                        background: '#dc3545',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.75rem',
+                                        transition: 'background 0.2s'
+                                      }}
+                                      onMouseOver={(e) => e.currentTarget.style.background = '#c82333'}
+                                      onMouseOut={(e) => e.currentTarget.style.background = '#dc3545'}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             ))}
-                          </ul>
+                          </div>
                         </div>
                       )}
                     </div>
